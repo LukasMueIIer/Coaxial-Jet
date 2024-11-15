@@ -20,6 +20,7 @@ class CoaxJet:
         self.theta = self.calculate_theta()
         self.opti = opti 
         self.x_core = self.calculate_x_core()
+        self.delta_U_core = self.calculate_delta_U_full_Virtual(self.x_core)
     
     def calculate_lam(self,Uc):
         #calcualtes the lam value that corresponds to the given velocity
@@ -66,3 +67,24 @@ class CoaxJet:
         #where the equation is fullfiled if l_U equals Ui
         self.opti.subject_to(x_v == np.blend(9999**4 * (x_v - self.x_core) ,self.calculate_xv(l_U)  ,x_v * (self.Ui / l_U)))
         return l_U
+    
+    def calculate_delta_U_full_Virtual(self, x_v): #no blending for the core
+        # Calculates delta for a given x_v
+        Phi_41 = 0.0950
+        Phi_51 = 0.0445
+
+        # Calculate Uc from x_v
+        Uc = self.calculate_Uc_from_xv(x_v)
+        # Calculate lambda
+        lam = self.calculate_lam(Uc)
+        # Calculate delta/theta
+        delta_theta_ratio = lam / np.sqrt(2 * np.pi * (lam * Phi_41 + Phi_51))
+        # Calculate theta
+        theta = self.calculate_theta()
+        # Calculate delta
+        delta = delta_theta_ratio * theta
+        return delta
+    
+    def calculate_delta_U(self,x_v):
+        return np.blend(9999**4 * (self.x_core - x_v), self.d/2 + x_v / self.x_core * (self.delta_U_core - 0.5 * self.d), self.calculate_delta_U_full_Virtual(x_v))
+    
