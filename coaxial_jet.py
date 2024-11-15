@@ -15,12 +15,13 @@ class CoaxJet:
         self.Ua = Ua
         self.Ti = Ti
         self.Ta = Ta
+        self.d = d
         self.lam_0 = self.calculate_lam(Ui)
         self.theta = self.calculate_theta()
         self.opti = opti 
         self.x_core = self.calculate_x_core()
     
-    def calcualte_lam(self,Uc):
+    def calculate_lam(self,Uc):
         #calcualtes the lam value that corresponds to the given velocity
         return self.Ua / (Uc - self.Ua)
 
@@ -63,5 +64,5 @@ class CoaxJet:
         #if we are within the core, setting l_U to Ui must return x_v
         #if wer are smaller than x_core blend should be very negative and we should get the "first as output",
         #where the equation is fullfiled if l_U equals Ui
-        self.opti.subject_to(x_v == np.blend(9999 * (self.x_core - x_v) ,self.calculate_xv(l_U))  ,self.x_v * l_U / self.Ui  )
+        self.opti.subject_to(x_v == np.blend(9999**4 * (x_v - self.x_core) ,self.calculate_xv(l_U)  ,x_v * (self.Ui / l_U)))
         return l_U
