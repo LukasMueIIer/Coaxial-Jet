@@ -16,7 +16,7 @@ rho_c_a = 0     #mass concentration of the contaminant on freestream [kg/m^3]
 
 opti = asb.Opti() #Creating our optimizer
 
-jet = CoaxJet(Ui,Ua,Ti,Ta,d,opti) #creating the Jet class, passing it the jet data and optimizer
+jet = CoaxJet(Ui,Ua,Ti,Ta,rho_c_i,rho_c_a,d,opti) #creating the Jet class, passing it the jet data and optimizer
 
 ## Center Line calculations
 x_c = jet.calculate_x_core()
@@ -26,8 +26,10 @@ X = np.linspace(0,20,50)
 U_c = []
 T_c = []
 for i in X:
-    U_c.append(jet.calculate_Uc_from_xv(i))
-    T_c.append(jet.calculate_dTc_ratio(i))
+    #U_c.append(jet.calculate_Uc_from_xv(i))
+    #T_c.append(jet.calculate_dTc_ratio(i))
+    U_c.append(jet.calculate_delta_U(i))
+    T_c.append(jet.calculate_delat_T(i))
 
 
 
@@ -37,29 +39,22 @@ U_c = sol(U_c)
 T_c = sol(T_c)
 print(U_c)
 print(T_c)
+
 # Create the plot
-fig, ax1 = plt.subplots(figsize=(10, 6))  # Create figure and first axis
+plt.figure(figsize=(10, 6))
 
-# Plot U_c on the primary y-axis (left)
-ax1.plot(X, U_c, label="Centerline Velocity $U_c$", color="blue", marker="o")
-ax1.set_xlabel("x (m)")
-ax1.set_ylabel("$U_c$ (m/s)", color="blue")
-ax1.tick_params(axis="y", labelcolor="blue")
-ax1.set_ylim(jet.Ua,jet.Ui)
-ax1.grid(True)
+# Plot U_c
+plt.plot(X, U_c, label=r"$U_c$", color="blue", linestyle="-", marker="o")
 
-# Add secondary y-axis (right) for T_c
-#ax2 = ax1.twinx()  # Create a second y-axis sharing the same x-axis
-#ax2.plot(x_stats, T_c, label="Centerline Temperature $T_c$", color="red", linestyle="--", marker="x")
-#ax2.set_ylabel("$T_c$ (K)", color="red")
-#ax2.tick_params(axis="y", labelcolor="red")
-#ax2.set_ylim(290, 360)  # Adjust limits as needed
+# Plot T_c
+plt.plot(X, T_c, label=r"$T_c$", color="red", linestyle="--", marker="x")
 
-# Add legends
-fig.legend(loc="upper center", bbox_to_anchor=(0.5, 1.15), ncol=2)
-
-# Add a title
-plt.title("Centerline Velocity and Temperature Profile")
+# Add labels and legend
+plt.xlabel("X (m)")
+plt.ylabel("Values")
+plt.title("U_c and T_c Profiles Along X")
+plt.legend()
+plt.grid(True)
 
 # Show the plot
 plt.show()
