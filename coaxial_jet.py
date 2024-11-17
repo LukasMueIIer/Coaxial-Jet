@@ -89,8 +89,7 @@ class CoaxJet:
     def calculate_delta_U(self,x_v):
         return np.blend(9999**4 * (self.x_core - x_v), self.d/2 + x_v / self.x_core * (self.delta_U_core - 0.5 * self.d), self.calculate_delta_U_full_Virtual(x_v))
     
-    def calculate_dTc_ratio(self,x_v):
-        U_c = self.calculate_Uc_from_xv(x_v)
+    def calculate_dTc_ratio_from_Uc(self,U_c):
 
         E = 2  # Constant value of E
         
@@ -107,6 +106,10 @@ class CoaxJet:
         ))
         return dTc_ratio
     
+    def calculate_dTc_ratio(self,x_v):
+        U_c = self.calculate_Uc_from_xv(x_v)
+        return self.calculate_dTc_ratio_from_Uc(U_c)
+    
     def calculate_Tc(self,x_v):
         #calculates the core Temperature for a given x_v
         deltaTi = self.Ti - self.Ta
@@ -120,3 +123,10 @@ class CoaxJet:
         deltaRho_c = self.rho_c_i - self.rho_c_a
         l_deltaRho_c = self.calculate_dRho_ratio(x_v)
         return self.rho_c_a + l_deltaRho_c
+    
+    def calculate_delat_T(self,x_v):
+        l_U = self.calculate_Uc_from_xv(x_v)
+        dTc_ratio = self.calculate_dTc_ratio_from_Uc(l_U)
+        ratio_Uc = (l_U - self.Ua) / (self.Ui - self.Ua)
+        delta_ratio = np.sqrt(ratio_Uc) / np.sqrt(dTc_ratio)
+        return delta_ratio * self.calculate_delta_U(x_v)
