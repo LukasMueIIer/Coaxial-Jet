@@ -4,7 +4,7 @@ import aerosandbox.numpy as np
 import aerosandbox as asb
 
 class CoaxJet:
-    def __init__(self,Ui,Ua,Ti,Ta,d,opti: asb.Opti):
+    def __init__(self,Ui,Ua,Ti,Ta,rho_c_i,rho_c_a,d,opti: asb.Opti):
         #Ui is velocity of the Jet in [m/s]
         #Ua is velocity of the freestream [m/s]
         #Ti is temperature of the Jet [K]
@@ -15,6 +15,8 @@ class CoaxJet:
         self.Ua = Ua
         self.Ti = Ti
         self.Ta = Ta
+        self.rho_c_i = rho_c_i
+        self.rho_c_a = rho_c_a
         self.d = d
         self.lam_0 = self.calculate_lam(Ui)
         self.theta = self.calculate_theta()
@@ -60,12 +62,11 @@ class CoaxJet:
     
     def calculate_Uc_from_xv(self,x_v):
         #implicitly calculates the responding centerline U_c value to a x_v value
-        l_U = self.opti.variable(self.Ua + 0.5 * (self.Ui - self.Ua))
-
+        l_U = self.opti.variable(self.Ua + 0.5 * (self.Ui - self.Ua),log_transform=True,upper_bound=self.Ui,lower_bound=self.Ua)
         #if we are within the core, setting l_U to Ui must return x_v
         #if wer are smaller than x_core blend should be very negative and we should get the "first as output",
         #where the equation is fullfiled if l_U equals Ui
-        self.opti.subject_to(x_v == np.blend(9999**4 * (x_v - self.x_core) ,self.calculate_xv(l_U)  ,x_v * (self.Ui / l_U)))
+        self.opti.subject_to(x_v == np.blend(9999**4 * (x_v - self.x_core) ,self.calculate_xv(l_U)  ,x_v + l_U - self.Ui))
         return l_U
     
     def calculate_delta_U_full_Virtual(self, x_v): #no blending for the core
@@ -88,3 +89,34 @@ class CoaxJet:
     def calculate_delta_U(self,x_v):
         return np.blend(9999**4 * (self.x_core - x_v), self.d/2 + x_v / self.x_core * (self.delta_U_core - 0.5 * self.d), self.calculate_delta_U_full_Virtual(x_v))
     
+    def calculate_dTc_ratio(self,x_v):
+        U_c = self.calculate_Uc_from_xv(x_v)
+
+        E = 2  # Constant value of E
+        
+        # Calculate terms
+        ratio_Uc = (U_c - self.Ua) / (self.Ui - self.Ua)
+        ln_term_numerator = ratio_Uc * (1 + 2 * (self.Ua / (self.Ui - self.Ua)))
+        ln_term_denominator = ratio_Uc + 2 * (self.Ua / (self.Ui - self.Ua))
+        
+        # Calculate the main equation
+        dTc_ratio = (1 / E) * (1 / (
+            (1 / ratio_Uc - 1) +
+            (1 / 6) * ((self.Ui - self.Ua) / self.Ua) * np.log(ln_term_numerator / ln_term_denominator) +
+            (1 / E)
+        ))
+        return dTc_ratio
+    
+    def calculate_Tc(self,x_v):
+        #calculates the core Temperature for a given x_v
+        deltaTi = self.Ti - self.Ta
+        l_deltaTi = self.calculate_dTc_ratio(x_v) * deltaTi
+        return self.Ta + l_deltaTi
+
+    def calculate_dRho_ratio(self,x_v):
+        return self.calculate_dTc_ratio(x_v)
+    
+    def calculate_rho_c_c(self,x_v):
+        deltaRho_c = self.rho_c_i - self.rho_c_a
+        l_deltaRho_c = self.calculate_dRho_ratio(x_v)
+        return self.rho_c_a + l_deltaRho_c
